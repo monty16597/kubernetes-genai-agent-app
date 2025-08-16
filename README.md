@@ -1,6 +1,20 @@
 # kubernetes-genai-agent-app
 This is sample app for Kubernetes GenAI Orchestrator. Users create a project card with set of instructions and it will be processed using MCP tools. It perform all Kubernetes related operations such as kubectl apply, kubectl get, kubectl delete, etc. It also can install helm charts. 
 
+## Architecture
+```mermaid
+flowchart TD
+    A[User] -->|Create Project Card| B[Streamlit App]
+    B -->|Send Request| C[LangGraph React Agent]
+    C -->|Use MCP Tools to operate on cluster| D[Kubernetes MCP Orchestrator]
+    D -->|Communicate with| E[Kubernetes Clusters]
+    E -->|Return Status| D
+    D -->|Return Response| C
+    C -->|Display Result| B
+    C --> |generate schema for Kubernetes resources| F[Generate Schema Tool]
+    F -->|Return Schema| C
+```
+
 ## Setup
 ### Prerequisites
 - Python 3.8 or higher
