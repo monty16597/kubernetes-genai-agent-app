@@ -5,6 +5,14 @@ from typing import Annotated, Any, List
 import yaml
 import os
 
+mcp_servers = {
+    "kubernetes_operations": {
+        "command": "npx",
+        "args": ["mcp-server-kubernetes"],
+        "transport": "stdio",
+    }
+}
+
 
 class KubernetesResourcesFormate(BaseModel):
     resource_name: Annotated[str, "The name of the Kubernetes resource to be created or modified."]

@@ -4,7 +4,7 @@ from langchain_core.messages import SystemMessage
 from langchain.tools import tool
 from typing import Annotated
 from langgraph.prebuilt import create_react_agent
-from config import get_llm, QueryResponseFormat
+from config import mcp_servers, get_llm, QueryResponseFormat
 from langchain_huggingface import ChatHuggingFace
 
 
@@ -36,15 +36,7 @@ class AgentController:
         # Create LLM (Language Model)
         self.llm = get_llm()
 
-        self.mcp_client: MultiServerMCPClient = MultiServerMCPClient(
-            {
-                "k8s_operations": {
-                    "command": "npx",
-                    "args": ["mcp-server-kubernetes"],
-                    "transport": "stdio",
-                }
-            }
-        )
+        self.mcp_client: MultiServerMCPClient = MultiServerMCPClient(mcp_servers)
 
         self.available_tools = await self._get_available_tools()
         self.agent = create_react_agent(
@@ -63,7 +55,7 @@ class AgentController:
                 - When user ask to "create a pod", then generate manifest and use kubectl_apply binded tool to create resource, not kubectl_create_tool.
                 Your goal is to complete the user request end-to-end without interruptions.
             """),
-            response_format=QueryResponseFormat().model_json_schema() if isinstance(self.llm, ChatHuggingFace) else QueryResponseFormat
+            response_format=None if isinstance(self.llm, ChatHuggingFace) else QueryResponseFormat
         )
         print("MCPController initialized successfully.")
 
