@@ -3,15 +3,25 @@ This is sample app for Kubernetes GenAI Orchestrator. Users create a project car
 
 ## Architecture
 ```mermaid
+flowchart LR
+    A[Streamlit App] --> B[Langgraph React Agent]
+    B --> C[Kubernetes MCP server]
+    D[Get Kubernetes Resource Schema Tool] --> B
+    C --> E[Kubernetes Cluster]
+
+```
+
+## Request Flow
+```mermaid
 flowchart TD
     A[User] -->|Create Project Card| B[Streamlit App]
     B -->|Send Request| C[LangGraph React Agent]
-    C -->|Use MCP Tools to operate on cluster| D[Kubernetes MCP Orchestrator]
+    C -->|Use MCP Tools to operate on cluster| D[Kubernetes MCP Server]
     D -->|Communicate with| E[Kubernetes Clusters]
     E -->|Return Status| D
     D -->|Return Response| C
     C -->|Display Result| B
-    C --> |generate schema for Kubernetes resources| F[Generate Schema Tool]
+    C --> |Get schema for Kubernetes resources| F[Get Kubernetes Resource Schema Tool]
     F -->|Return Schema| C
 ```
 
