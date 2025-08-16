@@ -39,8 +39,7 @@ async def save_item(name: str, instructions: str, placeholder=None):
                     if "structured_response" in chunk:
                         try:
                             placeholder.write("### Output")
-                            placeholder.write(chunk["messages"][-1].content)
-                            save_item_to_db(table, name, instructions, chunk["messages"][-1].content)
+                            placeholder.write(chunk["structured_response"])
                         except RuntimeError as e:
                             st.error(str(e))
                             return False
@@ -51,15 +50,21 @@ async def save_item(name: str, instructions: str, placeholder=None):
                     else:
                         placeholder.write(f"========================={chunk['messages'][-1].type}===============================")
                         placeholder.write(chunk["messages"][-1].content)
+                else:
+                    if "structured_response" in chunk:
+                        save_item_to_db(table, name, instructions, chunk["structured_response"])
+                    else:
+                        save_item_to_db(table, name, instructions, chunk["messages"][-1].content)
 
             placeholder.success(f"Finished processing '{name}' ✅")
+            st.rerun()
     except Exception as e:
         st.error(f"Error during save: {e}")
         return False
 
 
-async def delete_item_from_cluster(item):
-    """Delete an item from the Kubernetes cluster via AgentController."""
+async def delete_item_from_cluster(item, placeholder=None):
+    """Delete an item from the Kubernetes cluster via AgentController with UI updates."""
     agent_controller = get_agent_controller()
     await agent_controller.init_async()
 
@@ -69,10 +74,33 @@ async def delete_item_from_cluster(item):
 
     try:
         if agent_controller:
-            async for chunk in agent_controller.invoke_stream(
-                query=f"delete all the newly created resources which are mentioned in: {item}"
-            ):
-                chunk["messages"][-1].pretty_print()
+            if placeholder:
+                placeholder.info(f"Deleting resources for '{item['name']}'...")
+                async for chunk in agent_controller.invoke_stream(
+                    query=f"delete all the newly created resources which are mentioned in: {item}"
+                ):
+                    if "structured_response" in chunk:
+                        try:
+                            placeholder.write("### Output")
+                            placeholder.write(chunk["structured_response"])
+                        except RuntimeError as e:
+                            st.error(str(e))
+                            return False
+                    elif (
+                        chunk["messages"][-1]
+                        and isinstance(chunk["messages"][-1], ToolMessage)
+                        and chunk["messages"][-1].name == "get_kubernetes_resource_schema"
+                    ):
+                        match = re.search(r"KIND:\s*(\S+)", chunk["messages"][-1].content)
+                        resource_type = match.group(1) if match else None
+                        placeholder.write(f"{resource_type} schema retrieved")
+                    else:
+                        placeholder.write(
+                            f"========================={chunk['messages'][-1].type}==============================="
+                        )
+                        placeholder.write(chunk["messages"][-1].content)
+
+                placeholder.success(f"Finished deleting resources for '{item['name']}' ✅")
     except Exception as e:
         st.error(f"Error during delete: {e}")
         return False
@@ -129,19 +157,21 @@ if table:
                     with header_cols[1]:
                         with st.popover("⋮"):
                             if st.button("Delete", key=f"delete_{item['name']}", type="secondary", use_container_width=True):
+                                output_placeholder = st.container()
                                 try:
                                     item_data = get_item(table, item['name'])
                                 except RuntimeError as e:
                                     st.error(str(e))
                                     item_data = None
                                 if item_data:
-                                    asyncio.run(delete_item_from_cluster(item_data))
+                                    asyncio.run(delete_item_from_cluster(item_data, placeholder=output_placeholder))
                                     try:
                                         delete_item(table, item['name'])
                                         st.toast(f"Resource '{item['name']}' deleted. 🗑️", icon="👋")
                                     except RuntimeError as e:
                                         st.error(str(e))
                                     st.rerun()
+
                     st.write(item['instructions'])
                     st.write(item['resources'])
 
