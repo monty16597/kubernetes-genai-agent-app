@@ -52,7 +52,7 @@ pip install -r requirements.txt
 docker-compose up -d
 ```
 
-- Initialise DB
+- Initialise DB when starting the app for the first time
 ```bash
 sh init.sh
 
