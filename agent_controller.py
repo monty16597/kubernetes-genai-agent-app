@@ -5,7 +5,6 @@ from langchain.tools import tool
 from typing import Annotated
 from langgraph.prebuilt import create_react_agent
 from config import mcp_servers, get_llm, QueryResponseFormat
-from langchain_huggingface import ChatHuggingFace
 
 
 @tool
@@ -55,7 +54,7 @@ class AgentController:
                 - When user ask to "create a pod", then generate manifest and use kubectl_apply binded tool to create resource, not kubectl_create_tool.
                 Your goal is to complete the user request end-to-end without interruptions.
             """),
-            response_format=None if isinstance(self.llm, ChatHuggingFace) else QueryResponseFormat
+            response_format=QueryResponseFormat
         )
         print("MCPController initialized successfully.")
 

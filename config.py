@@ -1,9 +1,10 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
-from pydantic import BaseModel, field_validator
 from typing import Annotated, Any, List
-import yaml
+from typing_extensions import TypedDict
 import os
+import dotenv
+dotenv.load_dotenv()
 
 mcp_servers = {
     "kubernetes_operations": {
@@ -14,32 +15,20 @@ mcp_servers = {
 }
 
 
-class KubernetesResourcesFormate(BaseModel):
+class KubernetesResourcesFormate(TypedDict):
     resource_name: Annotated[str, "The name of the Kubernetes resource to be created or modified."]
     resource_type: Annotated[str, "The type of Kubernetes resource to be created or modified."]
     namespace: Annotated[str, "The namespace in which the resource resides."]
     manifest_file: Annotated[Any, "Manifest content of the resource, parsed from YAML to dict."]
     error_message: Annotated[str, "Any error message encountered during creation of the resource."] = None
 
-    @field_validator("manifest_file", mode="before")
-    @classmethod
-    def parse_manifest_yaml(cls, value):
-        if isinstance(value, str):
-            try:
-                return yaml.safe_load(value)
-            except yaml.YAMLError as e:
-                raise ValueError(f"Invalid YAML in manifest_file: {e}")
-        return value
 
-
-class QueryResponseFormat(BaseModel):
+class QueryResponseFormat(TypedDict):
     """
     A Pydantic model to define the expected format of the query response.
     This can be extended based on the specific requirements of the MCP server.
     """
     created_resources: Annotated[List[KubernetesResourcesFormate], "List of Kubernetes resources which have been created in the query. It doesn't include any existing resources."] = []
-    updated_resources: Annotated[List[KubernetesResourcesFormate], "List of Kubernetes resources which have been updated in the query."] = []
-    deleted_resources: Annotated[List[KubernetesResourcesFormate], "List of Kubernetes resources which have been deleted in the query."] = []
 
 
 LLM_MODEL_PROVIDER = os.getenv("LLM_MODEL_PROVIDER", None)

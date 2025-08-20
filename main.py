@@ -22,6 +22,29 @@ except RuntimeError as e:
     table = None
 
 
+def content_writer(placeholder, chunk):
+    """Write content to the Streamlit placeholder."""
+    if "structured_response" in chunk:
+        placeholder.markdown("#### Output")
+        placeholder.markdown(f"```\n{chunk['structured_response']}\n```")
+        placeholder.markdown("-----")
+    elif (
+        chunk["messages"][-1]
+        and isinstance(chunk["messages"][-1], ToolMessage)
+        and chunk["messages"][-1].name == "get_kubernetes_resource_schema"
+    ):
+        match = re.search(r"KIND:\s*(\S+)", chunk["messages"][-1].content)
+        resource_type = match.group(1) if match else None
+        placeholder.markdown("#### Schema Retrieved from MCP Tool")
+        placeholder.markdown(f"Resource Type: {resource_type}")
+        placeholder.markdown("-----")
+    else:
+        if chunk["messages"][-1].content.strip():
+            placeholder.markdown(f"#### {chunk['messages'][-1].type}")
+            placeholder.markdown(chunk["messages"][-1].content.strip())
+            placeholder.markdown("-----")
+
+
 async def save_item(name: str, instructions: str, placeholder=None):
     """Save item to DB and process via AgentController."""
     agent_controller = get_agent_controller()
@@ -36,20 +59,7 @@ async def save_item(name: str, instructions: str, placeholder=None):
             if placeholder:
                 placeholder.info(f"Processing '{name}'...")
                 async for chunk in agent_controller.invoke_stream(query=instructions):
-                    if "structured_response" in chunk:
-                        try:
-                            placeholder.write("### Output")
-                            placeholder.write(chunk["structured_response"])
-                        except RuntimeError as e:
-                            st.error(str(e))
-                            return False
-                    elif chunk["messages"][-1] and isinstance(chunk["messages"][-1], ToolMessage) and chunk["messages"][-1].name == "get_kubernetes_resource_schema":
-                        match = re.search(r"KIND:\s*(\S+)", chunk["messages"][-1].content)
-                        resource_type = match.group(1) if match else None
-                        placeholder.write(f"{resource_type} schema retrieved")
-                    else:
-                        placeholder.write(f"========================={chunk['messages'][-1].type}===============================")
-                        placeholder.write(chunk["messages"][-1].content)
+                    content_writer(placeholder, chunk)
                 else:
                     if "structured_response" in chunk:
                         save_item_to_db(table, name, instructions, chunk["structured_response"])
@@ -79,27 +89,7 @@ async def delete_item_from_cluster(item, placeholder=None):
                 async for chunk in agent_controller.invoke_stream(
                     query=f"delete all the newly created resources which are mentioned in: {item}"
                 ):
-                    if "structured_response" in chunk:
-                        try:
-                            placeholder.write("### Output")
-                            placeholder.write(chunk["structured_response"])
-                        except RuntimeError as e:
-                            st.error(str(e))
-                            return False
-                    elif (
-                        chunk["messages"][-1]
-                        and isinstance(chunk["messages"][-1], ToolMessage)
-                        and chunk["messages"][-1].name == "get_kubernetes_resource_schema"
-                    ):
-                        match = re.search(r"KIND:\s*(\S+)", chunk["messages"][-1].content)
-                        resource_type = match.group(1) if match else None
-                        placeholder.write(f"{resource_type} schema retrieved")
-                    else:
-                        placeholder.write(
-                            f"========================={chunk['messages'][-1].type}==============================="
-                        )
-                        placeholder.write(chunk["messages"][-1].content)
-
+                    content_writer(placeholder, chunk)
                 placeholder.success(f"Finished deleting resources for '{item['name']}' ✅")
     except Exception as e:
         st.error(f"Error during delete: {e}")
