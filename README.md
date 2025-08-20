@@ -27,6 +27,7 @@ flowchart TD
 
 ## Setup
 ### Prerequisites
+- awscli
 - Python 3.8 or higher
 - Docker and docker-compose
 - Kubernetes cluster (minikube, kind, or any cloud provider)
@@ -34,44 +35,35 @@ flowchart TD
 
 ### Setup Python env
 1. Create virtualenv
-```bash
-python -m venv .venv
-```
+    ```bash
+    python -m venv .venv
+    ```
 2. Activate virtualenv
-```bash
-source .venv/bin/activate
-```
+    ```bash
+    source .venv/bin/activate
+    ```
 3. Install dependencies
-```bash
-pip install -r requirements.txt
-```
+    ```bash
+    pip install -r requirements.txt
+    ```
 
 ### Run app
 - Start DynamoDB Docker
-```bash
-docker-compose up -d
-```
+    ```bash
+    docker-compose up -d
+    ```
 
 - Initialise DB when starting the app for the first time
-```bash
-sh init.sh
+    ```bash
+    sh init.sh
 
-```
-- app uses below environment variables
+    ```
+- Set these environment variables in `.env` file (check `.env.local` for example)
   - `LLM_MODEL_PROVIDER`: It can be "google" or "huggingface"
     - For google, set `GOOGLE_API_KEY` environment variable with your Google API key. [Check here](https://aistudio.google.com/apikey)
     - For huggingface, Configure huggingface-cli as mentioned [here](https://huggingface.co/docs/huggingface_hub/en/guides/cli#command-line-interface-cli)
 
-- Run app with Gemini LLM
-```bash
-export LLM_MODEL_PROVIDER=google
-export GOOGLE_API_KEY=<your_google_api_key>
-streamlit run main.py
-```
-
-- Run app with Hugging Face LLM
-```bash
-export LLM_MODEL_PROVIDER=huggingface
-huggingface-cli login
-streamlit run main.py
-```
+- Run app
+    ```bash
+    streamlit run main.py
+    ```
